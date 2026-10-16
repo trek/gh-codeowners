@@ -41,3 +41,23 @@ func TestRunSkipsGitDirectoryForAbsoluteStartPath(t *testing.T) {
 		t.Fatalf("Run() output %q includes .git directory contents", output)
 	}
 }
+
+func TestRunAllowsColonInPattern(t *testing.T) {
+	dir := t.TempDir()
+
+	codeownersPath := filepath.Join(dir, "CODEOWNERS")
+	rules := "/tools/monorepo/src/tasks/new:list-view.ts    @example/platform-ui\n"
+	if err := os.WriteFile(codeownersPath, []byte(rules), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	exitCode := Run([]string{"--file", codeownersPath, "tools/monorepo/src/tasks/new:list-view.ts"}, &stdout, &stderr)
+	if exitCode != 0 {
+		t.Fatalf("Run() exit code = %d, stderr = %q", exitCode, stderr.String())
+	}
+
+	if !strings.Contains(stdout.String(), "@example/platform-ui") {
+		t.Fatalf("Run() output %q does not include owner for colon path", stdout.String())
+	}
+}
